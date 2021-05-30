@@ -49,7 +49,7 @@ public class Controller{
 	private int portImgs=1127;
 	private ServerSocket serverInps;
 	private ServerSocket serverImgs;
-	private String IP="192.168.0.10";
+	private String IP="192.168.0.1";
 	private BufferedImage moldura;
 	private int modo=0;
 	private JDialog janela=new JDialog(){
@@ -62,29 +62,32 @@ public class Controller{
 			setOpacity((float)0.01);
 			setCursor(getToolkit().createCustomCursor(new BufferedImage(1,1,BufferedImage.TYPE_INT_ARGB),new Point(),null));
 			setFocusTraversalKeysEnabled(false);
-			addKeyListener(new KeyAdapter(){//DETECTA TECLA
-				public void keyPressed(KeyEvent k){//AO PRESSIONAR
-					if(k.isShiftDown()&&k.getKeyCode()==KeyEvent.VK_ESCAPE){//SHIFT+ESC=SAIR
+			addKeyListener(new KeyAdapter(){
+				public void keyPressed(KeyEvent k){
+					if(k.isShiftDown()&&k.getKeyCode()==KeyEvent.VK_ESCAPE){	//SHIFT+ESC=SAIR
 						enviaInputs("KR:"+KeyEvent.VK_SHIFT);
-						enviaInputs("Fechar");
+						enviaInputs("X");
 						System.exit(0);
-					}else if(k.isShiftDown()&&k.getKeyCode()==KeyEvent.VK_SPACE){//SHIFT+SPACE=FULLSCREEN
+					}else if(k.isShiftDown()&&k.getKeyCode()==KeyEvent.VK_SPACE){	//SHIFT+SPACE=FULLSCREEN
 						fullscreen=!fullscreen;
 						janela.setOpacity(fullscreen?1:(float)0.01);
-						if(fullscreen)janela.setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
-							else janela.setCursor(janela.getToolkit().createCustomCursor(new BufferedImage(1,1,BufferedImage.TYPE_INT_ARGB),new Point(),null));
+						if(fullscreen){
+							janela.setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
+						}else{
+							janela.setCursor(janela.getToolkit().createCustomCursor(new BufferedImage(1,1,BufferedImage.TYPE_INT_ARGB),new Point(),null));
+						}
 					}else enviaInputs("KP:"+k.getKeyCode());
 				}
-				public void keyReleased(KeyEvent k){//AO SOLTAR
+				public void keyReleased(KeyEvent k){
 					enviaInputs("KR:"+k.getKeyCode());
 				}
 			});
-			addMouseWheelListener(new MouseWheelListener(){//SCROOL DO MOUSE
-				public void mouseWheelMoved(MouseWheelEvent w){//SCROOL MOVIDO
+			addMouseWheelListener(new MouseWheelListener(){
+				public void mouseWheelMoved(MouseWheelEvent w){
 					enviaInputs("MW:"+w.getWheelRotation());
 				}
 			});
-			addMouseListener(new MouseAdapter(){//AO MOVER O MOUSE
+			addMouseListener(new MouseAdapter(){
 				public void mousePressed(MouseEvent m){
 					if((m.getModifiers()&InputEvent.BUTTON1_MASK)!=0)enviaInputs("MBP:"+InputEvent.BUTTON1_MASK);
 						else if((m.getModifiers()&InputEvent.BUTTON2_MASK)!=0)enviaInputs("MBP:"+InputEvent.BUTTON2_MASK);
@@ -96,7 +99,7 @@ public class Controller{
 							else if((m.getModifiers()&InputEvent.BUTTON3_MASK)!=0)enviaInputs("MBR:"+InputEvent.BUTTON3_MASK);
 				}
 			});
-			addMouseMotionListener(new MouseAdapter(){//AO MOVER O MOUSE
+			addMouseMotionListener(new MouseAdapter(){
 				public void mouseMoved(MouseEvent m){
 					if(janela.isVisible())enviaInputs("MP:"+m.getX()+","+m.getY());
 				}
@@ -108,8 +111,8 @@ public class Controller{
 	};
 	public static void main(String[]vars){new Controller();}
 	public Controller(){
-		JOptionPane.showOptionDialog(null,"Modo de comunicação?","Modo",JOptionPane.YES_NO_OPTION,JOptionPane.QUESTION_MESSAGE,null,new Component[]{
-			new JButton("Transmissor"){{
+		JOptionPane.showOptionDialog(null,"Communication mode?","Mode",JOptionPane.YES_NO_OPTION,JOptionPane.QUESTION_MESSAGE,null,new Component[]{
+			new JButton("Transmitter"){{
 				setIcon(new ImageIcon(Toolkit.getDefaultToolkit().getImage(getClass().getResource("Transmissor.png"))));
 				addActionListener(new ActionListener(){public void actionPerformed(ActionEvent a){modo=1;JOptionPane.getRootFrame().dispose();}});
 			}},
@@ -120,23 +123,39 @@ public class Controller{
 		},null);
 		if(modo==0)System.exit(0);//CANCELA
 		else if(modo==1){//MODO TRANSMISSOR
-			IP=JOptionPane.showInputDialog("IP do receptor:",IP);
+			IP=JOptionPane.showInputDialog("Receptor's local IP:",IP);
 			moldura=new BufferedImage(tela.width,tela.height,BufferedImage.TYPE_INT_RGB);
 			mouseDetect();
 			recebeImagens();
 			janela.setVisible(true);
 			
 		}else if(modo==2){//MODO RECEPTOR
-			try{JOptionPane.showMessageDialog(null,InetAddress.getLocalHost(),"IP deste transmissor",JOptionPane.INFORMATION_MESSAGE);}catch(HeadlessException|UnknownHostException erro){System.exit(0);}
+			try{
+				JOptionPane.showMessageDialog(null,InetAddress.getLocalHost(),"Receptor's local IP",JOptionPane.INFORMATION_MESSAGE);
+			}catch(HeadlessException|UnknownHostException erro){
+				System.exit(0);
+			}
 			recebeInputs();
 			enviaImagens();
 		}
 		try{
-			SystemTray.getSystemTray().add(new TrayIcon(ImageIO.read(getClass().getResource((modo==1?"Transmissor":"Receptor")+".png")),modo==1?"Transmissor":"Receptor",new PopupMenu(){{
-				add(new MenuItem("Sair"){{addActionListener(new ActionListener(){public void actionPerformed(ActionEvent e){System.exit(0);}});}});
-			}}));
+			SystemTray.getSystemTray().add(
+					new TrayIcon(
+							ImageIO.read(getClass().getResource((modo==1?"Transmissor":"Receptor")+".png")),
+							(modo==1?"Transmitter":"Receptor"),
+							new PopupMenu(){{
+								add(new MenuItem("Exit"){{
+									addActionListener(new ActionListener(){
+										public void actionPerformed(ActionEvent e){
+											System.exit(0);
+										}
+									});
+								}});
+							}}
+					)
+			);
 		}catch(AWTException|IOException erro){
-			JOptionPane.showMessageDialog(null,"Erro ao carregar Ícone!\n"+erro,"Error",JOptionPane.ERROR_MESSAGE);
+			JOptionPane.showMessageDialog(null,"Error: Can't load icon!\n"+erro,"Error",JOptionPane.ERROR_MESSAGE);
 			System.exit(0);
 		}
 	}
@@ -159,7 +178,9 @@ public class Controller{
 							enviaInputs("C?");
 						}
 					}else;else lock=false;
-					try{Thread.sleep((tempoUltimoLoop-System.nanoTime()+tempoOptimizado)/1000000);}catch(Exception erro){}
+					try{
+						Thread.sleep((tempoUltimoLoop-System.nanoTime()+tempoOptimizado)/1000000);
+					}catch(Exception erro){}
 				}
 			}
 		}).start();
@@ -185,7 +206,7 @@ public class Controller{
 		}catch(IOException|ClassNotFoundException erro){
 			janela.setSize(0,0);
 			janela.setVisible(true);
-			JOptionPane.showMessageDialog(null,"Erro no contato de inputs!\n"+erro,"Erro!",JOptionPane.ERROR_MESSAGE);
+			JOptionPane.showMessageDialog(null,"Error: Couldn't send inputs!\n"+erro,"Error",JOptionPane.ERROR_MESSAGE);
 			System.exit(0);
 		}
 	}
@@ -204,7 +225,7 @@ public class Controller{
 						ObjectOutputStream output=new ObjectOutputStream(socket.getOutputStream());
 						//RECEBE
 						String dados=(String)input.readObject();
-						int tam=(dados.equals("Fechar")?0:dados.length());
+						int tam=(dados.equals("X")?0:dados.length());
 						if(dados.startsWith("MP:")){
 							int x=Integer.parseInt(dados.substring(3,dados.indexOf(",")));
 							int y=Integer.parseInt(dados.substring(dados.indexOf(",")+1,tam));
@@ -233,12 +254,15 @@ public class Controller{
 						input.close();
 						output.close();
 						socket.close();
-						if(dados.equals("Fechar"))break;
+						if(dados.equals("X"))break;
 					}
 				}catch(IOException|ClassNotFoundException erro){
-					JOptionPane.showMessageDialog(null,"Erro no contato de inputs!\n"+erro,"Erro!",JOptionPane.ERROR_MESSAGE);
+					JOptionPane.showMessageDialog(null,"Error: Couldn't receive inputs!\n"+erro,"Error",JOptionPane.ERROR_MESSAGE);
 				}finally{
-					try{serverInps.close();serverImgs.close();}catch(IOException error){}
+					try{
+						serverInps.close();
+						serverImgs.close();
+					}catch(IOException error){}
 					System.exit(0);
 				}
 			}
@@ -263,8 +287,11 @@ public class Controller{
 						socket.close();
 					}
 				}catch(IOException erro){
-					JOptionPane.showMessageDialog(null,"Erro no contato de imagens!\n"+erro,"Erro!",JOptionPane.ERROR_MESSAGE);
-					try{serverInps.close();serverImgs.close();}catch(IOException error){}
+					JOptionPane.showMessageDialog(null,"Error: Couldn't send screen!\n"+erro,"Error",JOptionPane.ERROR_MESSAGE);
+					try{
+						serverInps.close();
+						serverImgs.close();
+					}catch(IOException error){}
 					System.exit(0);
 				}
 			}
@@ -292,10 +319,12 @@ public class Controller{
 					}catch(IOException erro){
 						janela.setSize(0,0);
 						janela.setVisible(true);
-						JOptionPane.showMessageDialog(null,"Erro no contato de imagens!\n"+erro,"Erro!",JOptionPane.ERROR_MESSAGE);
+						JOptionPane.showMessageDialog(null,"Error: Couldn't receive screen!\n"+erro,"Error",JOptionPane.ERROR_MESSAGE);
 						System.exit(0);
 					}
-					try{Thread.sleep((tempoUltimoLoop-System.nanoTime()+tempoOptimizado)/1000000);}catch(Exception erro){}
+					try{
+						Thread.sleep((tempoUltimoLoop-System.nanoTime()+tempoOptimizado)/1000000);
+					}catch(Exception erro){}
 				}
 			}
 		}).start();
